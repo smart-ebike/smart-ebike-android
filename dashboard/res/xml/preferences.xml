@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="utf-8"?>
+<PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android" >
+
+    <PreferenceCategory android:title="Dashboard Preferences" >
+        <ListPreference
+            android:dialogTitle="Bluetooth Devices"
+            android:key="bluetooth_list_preference"
+            android:summary="List of paired bluetooth devices."
+            android:title="Bluetooth Devices" />
+
+        <CheckBoxPreference
+            android:defaultValue="false"
+            android:dialogTitle="Imperial Units"
+            android:enabled="false"
+            android:key="imperial_units_preference"
+            android:summaryOff="Enable imperial units"
+            android:summaryOn="Go back to metric units"
+            android:title="Imperial Units" />
+        <CheckBoxPreference
+            android:defaultValue="false"
+            android:dialogTitle="Enable GPS"
+            android:enabled="false"
+            android:key="enable_gps_preference"
+            android:summaryOff="Turn on GPS"
+            android:summaryOn="Turn off GPS"
+            android:title="Enable GPS" />
+    </PreferenceCategory>
+
+</PreferenceScreen>
