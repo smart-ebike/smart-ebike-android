@@ -1,0 +1,153 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<!-- Main Maven POM file. For info on building Android projects with Maven 
+  see http://code.google.com/p/maven-android-plugin/wiki/GettingStarted NOTES: 
+  You have to define the location of the Android SDK in one of two ways: * 
+  Define the environment variable ANDROID_HOME with the location of the Android 
+  SDK dir. * Run Maven with -Dandroid.sdk.path=PATH_TO_ANDROID_HOME -->
+
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+  <groupId>org.smartebike</groupId>
+  <artifactId>parent</artifactId>
+  <version>0.1-SNAPSHOT</version>
+
+  <name>Smart EBike Dashboard for Android</name>
+  <packaging>pom</packaging>
+  <url>https://github.com/smart-ebike/</url>
+  <description>This is the Android Dashboard for Smart-EBike controller.</description>
+
+  <modules>
+    <module>comms-api</module>
+    <module>dashboard</module>
+  </modules>
+
+  <properties>
+    <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+    <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
+    <java.version>1.6</java.version>
+    <android.version>4.1.1.4</android.version>
+    <android.sdk.version>14</android.sdk.version>
+    <android.maven.version>3.5.0</android.maven.version>
+  </properties>
+
+  <dependencyManagement>
+    <dependencies>
+      <!-- Android SDK -->
+      <dependency>
+        <groupId>com.google.android</groupId>
+        <artifactId>android</artifactId>
+        <version>${android.version}</version>
+        <scope>provided</scope>
+      </dependency>
+      <!-- Dependency Injection -->
+      <dependency>
+        <groupId>org.roboguice</groupId>
+        <artifactId>roboguice</artifactId>
+        <version>2.0</version>
+      </dependency>
+      <dependency>
+        <groupId>org.testng</groupId>
+        <artifactId>testng</artifactId>
+        <version>6.8</version>
+      </dependency>
+    </dependencies>
+  </dependencyManagement>
+
+  <build>
+    <plugins>
+      <plugin>
+        <groupId>com.mycila.maven-license-plugin</groupId>
+        <artifactId>maven-license-plugin</artifactId>
+        <version>1.9.0</version>
+        <configuration>
+          <aggregate>true</aggregate>
+          <header>COPYRIGHT.txt</header>
+          <strictCheck>true</strictCheck>
+          <includes>
+            <include>**/src/**/*.java</include>
+          </includes>
+          <useDefaultExcludes>true</useDefaultExcludes>
+          <properties>
+            <projectName>Smart-EBike</projectName>
+          </properties>
+          <encoding>UTF-8</encoding>
+        </configuration>
+        <executions>
+          <execution>
+            <phase>process-test-resources</phase>
+            <goals>
+              <goal>format</goal>
+            </goals>
+          </execution>
+        </executions>
+      </plugin>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-enforcer-plugin</artifactId>
+        <version>1.1.1</version>
+        <executions>
+          <execution>
+            <id>enforce-java</id>
+            <goals>
+              <goal>enforce</goal>
+            </goals>
+            <configuration>
+              <rules>
+                <requireMavenVersion>
+                  <version>[3.0.0,)</version>
+                </requireMavenVersion>
+                <requireJavaVersion>
+                  <version>[1.6,)</version>
+                </requireJavaVersion>
+              </rules>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
+    </plugins>
+    <pluginManagement>
+      <plugins>
+        <plugin>
+          <groupId>org.apache.maven.plugins</groupId>
+          <artifactId>maven-clean-plugin</artifactId>
+          <version>2.4.1</version>
+          <configuration>
+            <filesets>
+              <fileset>
+                <directory>${basedir}</directory>
+                <excludes>
+                  <exclude>.git/**</exclude>
+                  <exclude>.gitignore</exclude>
+                  <exclude>README.txt</exclude>
+                  <exclude>COPYRIGHT.txt</exclude>
+                </excludes>
+                <includes>
+                  <include>*.db</include>
+                  <include>*.log</include>
+                  <include>*.txt</include>
+                </includes>
+              </fileset>
+            </filesets>
+          </configuration>
+        </plugin>
+        <plugin>
+          <groupId>com.jayway.maven.plugins.android.generation2</groupId>
+          <artifactId>android-maven-plugin</artifactId>
+          <version>${android.maven.version}</version>
+        </plugin>
+        <plugin>
+          <groupId>org.apache.maven.plugins</groupId>
+          <artifactId>maven-compiler-plugin</artifactId>
+          <version>2.5.1</version>
+          <configuration>
+            <source>${java.version}</source>
+            <target>${java.version}</target>
+          </configuration>
+        </plugin>
+      </plugins>
+    </pluginManagement>
+  </build>
+
+</project>
