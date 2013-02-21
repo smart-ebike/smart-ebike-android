@@ -1,0 +1,17 @@
+*~
+*.class
+*.log
+*.pid
+*.dex
+*.iws
+*.ipr
+*.iml
+*.apk
+*.txt
+.settings
+.classpath
+.project
+.idea
+gen
+bin
+target
