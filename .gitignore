@@ -7,7 +7,6 @@
 *.ipr
 *.iml
 *.apk
-*.txt
 .settings
 .classpath
 .project
