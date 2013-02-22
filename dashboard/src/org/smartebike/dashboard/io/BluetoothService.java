@@ -17,14 +17,16 @@
 package org.smartebike.dashboard.io;
 
 import java.io.IOException;
+import java.io.InputStream;
 import java.util.UUID;
-import java.util.concurrent.atomic.AtomicBoolean;
 
-import org.smartebike.dashboard.IPostListener;
-import org.smartebike.dashboard.IPostMonitor;
 import org.smartebike.dashboard.R;
 import org.smartebike.dashboard.activity.ConfigActivity;
 import org.smartebike.dashboard.activity.MainActivity;
+import org.smartebike.dashboard.message.Message;
+import org.smartebike.dashboard.message.MessageHandler;
+import org.smartebike.dashboard.message.MessageKey;
+import org.smartebike.dashboard.message.MessageType;
 
 import roboguice.service.RoboService;
 import android.app.Notification;
@@ -47,12 +49,13 @@ import com.google.inject.Inject;
  * permanent connection between the device where the application runs and a
  * Bluetooth Smart EBike controller.
  */
-public class BluetoothService extends RoboService {
+public class BluetoothService extends RoboService implements MessageHandler {
 
 	private static final String TAG = "BluetoothService";
 
-	private IPostListener listener = null;
-	private AtomicBoolean isRunning = new AtomicBoolean(false);
+	private final IBinder binder = new BluetoothServiceBinder();
+	private MessageHandler listener = null;
+	private boolean isRunning = false;
 
 	@Inject
 	private NotificationManager notificationManager;
@@ -73,40 +76,27 @@ public class BluetoothService extends RoboService {
 	private static final UUID MY_UUID = UUID
 	        .fromString("00001101-0000-1000-8000-00805F9B34FB");
 
-	/**
-	 * As long as the service is bound to another component, say an Activity, it
-	 * will remain alive.
-	 */
-	@Override
-	public IBinder onBind(Intent intent) {
-		return new LocalBinder();
-	}
-
 	@Override
 	public void onCreate() {
+		super.onCreate();
 		showNotification();
+		Log.d(TAG, "Service started.");
 	}
 
 	@Override
 	public void onDestroy() {
-		stopService();
+		super.onDestroy();
+		Log.d(TAG, "Destroying BluetoothService...");
+		stopLiveData();
+		clearNotification();
+		listener = null;
+		Log.d(TAG, "BluetoothService destroyed.");
 	}
 
-	@Override
-	public int onStartCommand(Intent intent, int flags, int startId) {
-		Log.d(TAG, "Received start id " + startId + ": " + intent);
-		startService();
+	private void startLiveData() {
+		Log.d(TAG, "Starting live data..");
 
-		// service will die if activity dies
-		return START_NOT_STICKY;
-	}
-
-	private void startService() {
-		Log.d(TAG, "Starting service..");
-
-		/*
-		 * Let's get the remote Bluetooth device
-		 */
+		// let's get the remote Bluetooth device
 		String remoteDevice = prefs.getString(
 		        ConfigActivity.BLUETOOTH_LIST_KEY, null);
 		if (remoteDevice == null || "".equals(remoteDevice)) {
@@ -117,7 +107,7 @@ public class BluetoothService extends RoboService {
 			Log.e(TAG, "No Bluetooth device has been selected.");
 
 			// TODO kill this service gracefully
-			stopService();
+			stopLiveData();
 		}
 
 		final BluetoothAdapter btAdapter = BluetoothAdapter.getDefaultAdapter();
@@ -144,9 +134,6 @@ public class BluetoothService extends RoboService {
 		Log.d(TAG, "Stopping Bluetooth discovery.");
 		btAdapter.cancelDiscovery();
 
-		Toast.makeText(this, "Starting Bluetooth connection..",
-		        Toast.LENGTH_SHORT).show();
-
 		try {
 			startConnection();
 		} catch (Exception e) {
@@ -154,7 +141,7 @@ public class BluetoothService extends RoboService {
 			        + e.getMessage());
 
 			// in case of failure, stop this service.
-			stopService();
+			stopLiveData();
 		}
 	}
 
@@ -170,34 +157,56 @@ public class BluetoothService extends RoboService {
 		btSocket = btDevice.createRfcommSocketToServiceRecord(MY_UUID);
 		btSocket.connect();
 
-		// TODO register listener for socket input
+		isRunning = true;
+
+		// listen socket
+		try {
+			readBluetoothSocketInput(btSocket.getInputStream());
+		} catch (Exception e) {
+			Log.e(TAG,
+			        "There was an error reading Bluetooth socket inputstream: ",
+			        e);
+			stopLiveData();
+		}
 	}
 
 	/**
+	 * @throws IOException
 	 * 
 	 */
-	private void readBluetoothSocketInput() {
+	private void readBluetoothSocketInput(InputStream in) throws IOException {
+		byte b = 0;
+		StringBuilder motorSpeed = new StringBuilder();
+		// read until '\n' arrives
+		while ((char) (b = (byte) in.read()) != '\n')
+			if ((char) b != ' ')
+				motorSpeed.append((char) b);
+
+		// received \n so we need to update UI
+		Message updateMotorSpeedMessage = new Message(
+		        MessageType.UPDATE_MOTOR_SPEED);
+		updateMotorSpeedMessage.putExtra(MessageKey.MOTOR_SPEED_VALUE,
+		        motorSpeed.toString());
+		listener.handleMessage(updateMotorSpeedMessage);
+
+		// restart method
+		readBluetoothSocketInput(in);
 	}
 
 	/**
 	 * Stop Bluetooth connection.
 	 */
-	public void stopService() {
-		Log.d(TAG, "Stopping service..");
-
-		clearNotification();
-		listener = null;
-		isRunning.set(false);
-
-		// close socket
-		try {
-			btSocket.close();
-		} catch (IOException e) {
-			Log.e(TAG, e.getMessage());
+	public void stopLiveData() {
+		if (isRunning) {
+			Log.d(TAG, "Stopping live data..");
+			// close socket
+			try {
+				btSocket.close();
+			} catch (IOException e) {
+				Log.e(TAG, e.getMessage());
+			}
+			isRunning = false;
 		}
-
-		// kill service
-		stopSelf();
 	}
 
 	/**
@@ -228,18 +237,37 @@ public class BluetoothService extends RoboService {
 		notificationManager.cancel(R.string.service_started);
 	}
 
+	@Override
+	public IBinder onBind(Intent intent) {
+		return binder;
+	}
+
+	public class BluetoothServiceBinder extends Binder {
+		public BluetoothService getService() {
+			return BluetoothService.this;
+		}
+	}
+
+	@Override
+	public void registerListener(MessageHandler listener) {
+		this.listener = listener;
+	}
+
 	/**
-	 * TODO put description
+	 * Handles received messages.
 	 */
-	public class LocalBinder extends Binder implements IPostMonitor {
-		public void setListener(IPostListener callback) {
-			listener = callback;
+	@Override
+	public void handleMessage(Message message) {
+		switch (message.getMessageType()) {
+		case START_LIVE_DATA:
+			startLiveData();
+			break;
+		case STOP_LIVE_DATA:
+			stopLiveData();
+			break;
+		default:
+			break;
 		}
-
-		public boolean isRunning() {
-			return isRunning.get();
-		}
-
 	}
 
 }

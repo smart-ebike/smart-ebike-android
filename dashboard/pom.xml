@@ -11,6 +11,12 @@
   <packaging>apk</packaging>
   <name>Dashboard for Android</name>
 
+  <properties>
+    <android.version>4.1.1.4</android.version>
+    <android.sdk.version>14</android.sdk.version>
+    <android.maven.version>3.5.0</android.maven.version>
+  </properties>
+
   <dependencies>
     <!-- Communications API -->
     <dependency>
@@ -22,12 +28,14 @@
     <dependency>
       <groupId>com.google.android</groupId>
       <artifactId>android</artifactId>
+      <version>${android.version}</version>
       <scope>provided</scope>
     </dependency>
     <!-- Dependency Injection -->
     <dependency>
       <groupId>org.roboguice</groupId>
       <artifactId>roboguice</artifactId>
+      <version>2.0</version>
     </dependency>
   </dependencies>
 
@@ -38,6 +46,7 @@
       <plugin>
         <groupId>com.jayway.maven.plugins.android.generation2</groupId>
         <artifactId>android-maven-plugin</artifactId>
+        <version>${android.maven.version}</version>
         <configuration>
           <androidManifestFile>${project.basedir}/AndroidManifest.xml</androidManifestFile>
           <assetsDirectory>${project.basedir}/assets</assetsDirectory>
@@ -51,6 +60,9 @@
           </configuration>
           <deleteConflictingFiles>true</deleteConflictingFiles>
           <undeployBeforeDeploy>true</undeployBeforeDeploy>
+          <sign>
+            <debug>true</debug>
+          </sign>
         </configuration>
         <extensions>true</extensions>
       </plugin>
@@ -86,6 +98,12 @@
                   <storepass>smartedev</storepass>
                   <keypass>smartedev</keypass>
                   <alias>smartebike</alias>
+                  <arguments>
+                    <argument>-sigalg</argument>
+                    <argument>MD5withRSA</argument>
+                    <argument>-digestalg</argument>
+                    <argument>SHA1</argument>
+                  </arguments>
                 </configuration>
               </execution>
             </executions>
@@ -94,11 +112,6 @@
             <groupId>com.jayway.maven.plugins.android.generation2</groupId>
             <artifactId>android-maven-plugin</artifactId>
             <inherited>true</inherited>
-            <configuration>
-              <sign>
-                <debug>false</debug>
-              </sign>
-            </configuration>
           </plugin>
         </plugins>
       </build>
